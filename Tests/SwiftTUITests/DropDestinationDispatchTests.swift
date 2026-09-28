@@ -242,6 +242,36 @@ struct DropDestinationDispatchTests {
     runLoop.handlePaste(PasteEvent(content: "/tmp/dropped.txt"))
     #expect(received.value == [DroppedPath("/tmp/dropped.txt")])
   }
+
+  @Test("An ancestor onPaste receives exact multiline Unicode without synthesized keys")
+  func ancestorPasteReceivesOpaquePayload() throws {
+    let received = Box<[String]>([])
+    let keys = Box<[KeyPress]>([])
+    let runLoop = makeDropRunLoop {
+      VStack {
+        Text("terminal")
+          .id(testIdentity("PasteLeaf"))
+          .focusable(true)
+          .onKeyPress { key in
+            keys.value.append(key)
+            return .handled
+          }
+      }
+      .id(testIdentity("PasteAncestor"))
+      .onPaste { content in
+        received.value.append(content)
+        return .handled
+      }
+    }
+    try renderInitial(runLoop)
+    _ = runLoop.focusTracker.setFocus(to: testIdentity("PasteLeaf"))
+
+    let content = "first\n界🙂\tlast"
+    runLoop.handlePaste(PasteEvent(content: content))
+
+    #expect(received.value == [content])
+    #expect(keys.value.isEmpty)
+  }
 }
 
 /// Moves focus to the region with the deepest `scopePath` in the

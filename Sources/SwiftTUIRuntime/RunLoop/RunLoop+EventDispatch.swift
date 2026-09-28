@@ -337,14 +337,21 @@ extension RunLoop {
     }
     if let focusedIdentity = focusTracker.currentFocusIdentity {
       let invalidationGenerationBeforeDispatch = schedulerInvalidationRequestGeneration()
-      if localKeyHandlerRegistry.dispatchPaste(
-        identity: focusedIdentity,
-        content: pasteEvent.content
-      ) {
-        requestDispatchBackstopInvalidation(
-          schedulerInvalidationGenerationBeforeDispatch: invalidationGenerationBeforeDispatch
-        )
-        return
+      let path = renderer.viewGraph.keyEventHostingPath(
+        from: focusedIdentity,
+        ownerNodeID: focusTracker.currentFocusOwnerNodeID,
+        ownerIdentity: focusTracker.currentFocusOwnerIdentity
+      )
+      for identity in path {
+        if localKeyHandlerRegistry.dispatchPaste(
+          identity: identity,
+          content: pasteEvent.content
+        ) {
+          requestDispatchBackstopInvalidation(
+            schedulerInvalidationGenerationBeforeDispatch: invalidationGenerationBeforeDispatch
+          )
+          return
+        }
       }
     }
     // Fall through: re-emit the paste content as a sequence of
